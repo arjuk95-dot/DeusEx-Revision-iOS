@@ -68,4 +68,20 @@ class RevisionTests(unittest.TestCase):
         self.assertIn('Revision.RevJCDentonMale', revision.decode_game_text((output / 'User.ini').read_bytes()))
         with self.assertRaises(FileExistsError): revision.prepare(self.root, self.system, ini, user)
 
+    def test_original_music_is_explicit_and_scoped(self):
+        source = ('[Other]\nbUseRevisionSoundtrack=True\n[Revision.RevJCDentonMale]\n'
+                  'bUseRevisionSoundtrack=True\nbUsePS2Soundtrack=True\n'
+                  'bUseRevisionVer2Soundtrack=True\nUnrelated=Keep\n')
+        result = revision.original_music_profile(source)
+        self.assertIn('[Other]\nbUseRevisionSoundtrack=True', result)
+        self.assertIn('Unrelated=Keep', result)
+        self.assertEqual(result.count('bUseRevisionSoundtrack=False'), 1)
+        self.assertIn('bUsePS2Soundtrack=False', result)
+        self.assertIn('bUseRevisionVer2Soundtrack=False', result)
+        self.assertEqual(revision.original_music_profile(result), result)
+
+    def test_original_music_missing_section_added(self):
+        result = revision.original_music_profile('[DefaultPlayer]\nClass=Revision.RevJCDentonMale\n')
+        self.assertIn('[Revision.RevJCDentonMale]\nbUseRevisionSoundtrack=False', result)
+
 if __name__ == '__main__': unittest.main()

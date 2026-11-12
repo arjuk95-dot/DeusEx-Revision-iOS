@@ -60,6 +60,30 @@ def rewrite(text, game_root, original_system):
     return '\n'.join(result) + '\n'
 
 
+def original_music_profile(text):
+    """Alter only the private copy. Real Revision fallback, not missing files."""
+    section = 'revision.revjcdentonmale'
+    keys = ('bUseRevisionSoundtrack', 'bUsePS2Soundtrack', 'bUseRevisionVer2Soundtrack')
+    output = []
+    active = found = False
+    for line in text.splitlines():
+        match = re.match(r'^\s*\[([^]]+)\]', line)
+        if match:
+            active = match[1].casefold() == section
+            output.append(line)
+            if active:
+                found = True
+                output.extend(key + '=False' for key in keys)
+            continue
+        key, separator, _ = line.partition('=')
+        if active and separator and key.strip().casefold() in {k.casefold() for k in keys}:
+            continue
+        output.append(line)
+    if not found:
+        output.extend(['[Revision.RevJCDentonMale]'] + [key + '=False' for key in keys])
+    return '\n'.join(output) + '\n'
+
+
 def choose_file(folder, candidates):
     for name in candidates:
         path = folder / name
@@ -67,7 +91,7 @@ def choose_file(folder, candidates):
     raise FileNotFoundError('Missing Revision configuration: ' + ', '.join(candidates))
 
 
-def prepare(game_root, original_system=None, ini=None, userini=None):
+def prepare(game_root, original_system=None, ini=None, userini=None, original_music=False):
     root = pathlib.Path(game_root).resolve(strict=True)
     original_system = pathlib.Path(original_system) if original_system else root / 'Revision/System'
     ini = pathlib.Path(ini) if ini else choose_file(original_system, ('Revision.ini', 'RevisionDefault.ini'))
@@ -80,6 +104,8 @@ def prepare(game_root, original_system=None, ini=None, userini=None):
     user_text = decode_game_text(pathlib.Path(userini).read_bytes())
     if not re.search(r'^\s*Class\s*=\s*Revision\.', user_text, re.M | re.I):
         raise ValueError('User INI does not select a Revision player class; review the actual installed profile')
+    if original_music:
+        user_text = original_music_profile(user_text)
     output = root.parent / 'DXEngine/Revision'
     output.mkdir(parents=True, exist_ok=True)
     if any((output / name).exists() for name in ('Revision.ini', 'User.ini')):
@@ -98,5 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('--original-system')
     parser.add_argument('--ini')
     parser.add_argument('--userini')
+    parser.add_argument('--original-music', action='store_true',
+                        help='Use original tracker music; custom Ogg is not supported by the iOS bring-up')
     args = parser.parse_args()
-    print(prepare(args.game_root, args.original_system, args.ini, args.userini))
+    print(prepare(args.game_root, args.original_system, args.ini, args.userini, args.original_music))

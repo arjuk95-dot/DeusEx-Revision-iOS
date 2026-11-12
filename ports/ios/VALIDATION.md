@@ -172,3 +172,44 @@ Moved SDL's entrypoint include below the engine bootstrap helper and left a smal
 main wrapper afterward. A regression test checks declaration/call ordering so
 SDL's macro cannot affect the engine's main method again. Actual Apple relink
 is pending; no IPA produced by this run. SDL dependency cache was restored.
+
+
+## First successful Apple IPA
+
+Manual run 43265850857 at remote b2aec11 passed compile, arm64 iPhoneOS link,
+IPA packaging, relink-object preservation and artifact upload. Standard Intel
+macOS runner/Xcode 16.4, iPhoneOS SDK 18.5, deployment minimum iOS 15.
+IPA archive integrity and executable CPU type were verified after download.
+Unsigned IPA: 5,300,594 bytes; SHA256
+`01c09f488c1e427493babe963739d2a11d710f88f35e69d5320aded42333ed3b`.
+The bundle contains the executable, engine resource pack, metadata and notices;
+no licensed game data. No custom branded icon was supplied to this build.
+
+This supersedes earlier pending-build statements, not their historical findings.
+No iPhone installation or Revision gameplay has been tested. Production custom
+Ogg, touch input and device lifecycle behavior remain unresolved.
+
+## Device startup and next runtime work
+
+Owner's first IPA test reached the explicit missing Revision profile alert.
+That confirms the device entrypoint/error UI, not game loading. Private assets
+and prepared Revision.ini/User.ini must still be imported. The delivered b2aec11
+IPA predates the original-music capability work below.
+
+The next source revision adds opt-in DXE_REVISION_ORIGINAL_MUSIC=1 handlers for
+Revision's original tracker soundtrack only, enabled by iOS bootstrap. The private
+preparer's --original-music option switches the three actual Revision soundtrack
+flags off. No original INI is modified, and existing prepared profiles are not
+overwritten. iOS validates these flags before entering the engine. Availability
+is false, getters empty/zero, stop is harmless with no custom stream. Both custom
+playback setters explicitly throw instead of pretending playback succeeded.
+Full Ogg decoding/transition support remains absent. Eighteen Python tests pass.
+
+Full Linux engine rebuild/link, --version, sandbox C++ tests and direct registered
+Ogg-handler tests pass. The direct test initially used the native map's pair in
+reverse; corrected to function/class ordering, then passed all seven handlers,
+opt-in registration, forced-unavailable result and both explicit playback errors.
+On Legion, the stricter setters-throw test reached Revision's main menu and
+logged Playing vanilla ambient!, exit 0/no timeout (Shot0008.bmp). No unexpected
+custom playback request occurred during this bounded startup. Long gameplay,
+map/music transitions and actual sound output are not validated by that test.

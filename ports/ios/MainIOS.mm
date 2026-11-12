@@ -7,6 +7,7 @@
 #include "Utils/File.h"
 #include "SandboxPaths.h"
 #include "RevisionLaunch.h"
+#include "Package/IniFile.h"
 #include <cstdio>
 #include <exception>
 
@@ -28,9 +29,18 @@ static int RunIOSGame()
             if (!std::freopen((paths.state / "startup.log").c_str(), "a", stderr))
                 throw std::runtime_error("Cannot open startup log");
             const auto revision = RevisionLaunch::FromSandbox(paths);
+            IniFile userProfile(revision.userIni.string());
+            for (const char* key : {"bUseRevisionSoundtrack", "bUsePS2Soundtrack", "bUseRevisionVer2Soundtrack"})
+            {
+                const auto value = userProfile.GetValue("Revision.RevJCDentonMale", key);
+                if (value != "False" && value != "false" && value != "FALSE" && value != "0")
+                    throw std::runtime_error("This build uses original tracker music. Prepare the private profile with --original-music before launch.");
+            }
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
             SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
             setenv("DXE_DISPLAY_BACKEND", "SDL3", 1);
+            setenv("DXE_REVISION_ORIGINAL_MUSIC", "1", 1);
+            std::fprintf(stderr, "Revision: original tracker soundtrack only; custom Ogg unavailable\n");
             // First milestone: CPU rasterizer + SDL's Metal presentation.
             // Do not request desktop GL / ES 3.2 or Vulkan without MoltenVK.
             auto& settings = LauncherSettings::Get();

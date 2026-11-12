@@ -219,6 +219,8 @@ set(DXCOMMON_SOURCES
 	DXEngine/Native/NUdpLink.h
 	DXEngine/Native/NGamePlatform.cpp
 	DXEngine/Native/NGamePlatform.h
+	DXEngine/Native/NRevisionOgg.cpp
+	DXEngine/Native/NRevisionOgg.h
 	DXEngine/Native/NDebugInfo.cpp
 	DXEngine/Native/NDebugInfo.h
 	DXEngine/Native/NDeusExPlayer.cpp

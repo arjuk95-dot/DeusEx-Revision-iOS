@@ -7,9 +7,10 @@ the unrelated Unity OpenEX project and does not recompile the original x86 EXE.
 The existing script VM interprets the original game scripts; the port should
 not need JIT entitlements. Keep upstream `LICENSE.md` and attribution intact.
 
-**Status: initial platform bring-up, not an iPhone-validated game.** No IPA has
-been built or tested yet. This directory is concrete port groundwork, not a
-claim that a complete playable iOS port exists.
+**Status: Apple arm64 bring-up IPA built, not an iPhone-validated game.**
+Manual run 43265850857 at b2aec11 compiled, linked and packaged successfully.
+The unsigned IPA contains engine code/resources only. Device installation,
+Revision startup, touch input and audio remain unverified on iOS.
 
 ## Current target: Revision first
 
@@ -33,7 +34,7 @@ Run only after the complete private game tree is staged; do not invent INIs.
 
 ```sh
 python3 ports/ios/prepare_revision.py \
-  --game-root /private/staging/Documents/DeusEx
+  --game-root /private/staging/Documents/DeusEx --original-music
 ```
 
 Observed source defaults are `RevisionDefault.ini` and `RevisionDefUser.ini`.
@@ -43,7 +44,11 @@ ordered twelve-path list and OggPath rebasing have regression tests. Base data
 and Revision imports were checked on Legion. A Windows diagnostic reached
 Liberty Island through normal Revision new-game flow, with HUD and pistol input.
 That diagnostic explicitly disabled custom Ogg playback and used original tracker
-music; production Ogg support is unresolved. This is not iOS validation.
+music. The next build provides explicit original-tracker-only capability:
+prepare with `--original-music`, which alters the copied User.ini only. iOS
+rejects a profile still selecting custom soundtracks. Custom-track availability
+returns false; unexpected custom playback requests fail clearly rather than
+claiming success. Full Ogg playback remains unsupported. This is not iOS validation.
 See `VALIDATION.md` for evidence and `REVISION-COMPATIBILITY.md` for native risks.
 
 ## First milestone and deliberate limits
@@ -90,7 +95,8 @@ The IPA packager rejects host/simulator builds and missing engine resources.
 Expected result after a successful Apple build:
 `dist/DXEngine-iOS-bringup-unsigned.ipa`. Signing/installing is separate; use an
 authorized sideload signer. An unsigned IPA is not immediately installable.
-The script has not yet completed on a Mac; SDK-specific errors may remain.
+The script completed on standard macos-15-intel with Xcode 16.4.
+A successful Apple build is not a device gameplay or performance test.
 
 Do not automatically launch/retry hosted CI. Run portable checks first, then
 use one intentional macOS compilation job, saving its log and dependencies
