@@ -20,7 +20,8 @@ jobs:
           xcodebuild -version
           echo "version=$(xcodebuild -version | tr '\n ' '--')" >> "$GITHUB_OUTPUT"
       - name: Cache pinned SDL build
-        uses: actions/cache@v4
+        id: sdl-cache
+        uses: actions/cache/restore@v4
         with:
           path: .ios-deps
           key: ios-sdl-3.2.30-static-v1-${{ runner.arch }}-${{ steps.sdk.outputs.version }}
@@ -28,6 +29,12 @@ jobs:
         run: |
           set -o pipefail
           ports/ios/build.sh 2>&1 | tee ios-build.log
+      - name: Preserve successful SDL dependency even if engine fails
+        if: always() && steps.sdl-cache.outputs.cache-hit != 'true' && hashFiles('.ios-deps/install/lib/cmake/SDL3/SDL3Config.cmake') != '' && hashFiles('.ios-deps/install/lib/libSDL3.a') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .ios-deps
+          key: ${{ steps.sdl-cache.outputs.cache-primary-key }}
       - name: Save relink objects for licensing and debugging
         if: success()
         run: |

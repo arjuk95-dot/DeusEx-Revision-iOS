@@ -11,7 +11,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
 	set(ENABLE_SDL2 OFF CACHE BOOL "" FORCE)
 	set(ENABLE_SDL3 ON CACHE BOOL "" FORCE)
 	add_compile_definitions(DXE_IOS)
-	find_package(SDL3 CONFIG REQUIRED)
+	# The SDK roots package searches; SDL3_DIR is the device library installed
+	# by ports/ios/build.sh outside that SDK, never a host SDL installation.
+	if(NOT SDL3_DIR)
+		message(FATAL_ERROR "iOS requires explicit SDL3_DIR from the device dependency build")
+	endif()
+	find_package(SDL3 CONFIG REQUIRED PATHS "${SDL3_DIR}" NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
 endif()
 
 # The warnings DXCommon, DXEngine, DXWidgets and DXGPU are built with: -Wall

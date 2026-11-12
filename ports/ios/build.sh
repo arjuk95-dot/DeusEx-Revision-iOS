@@ -18,12 +18,12 @@ common=(-G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO)
 if [[ ! -f "$prefix/install/lib/cmake/SDL3/SDL3Config.cmake" ]]; then
 cmake -S "$prefix/SDL" -B "$root/build-ios-sdl" "${common[@]}" \
-    -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_VULKAN=OFF \
+    -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_VULKAN=OFF \
     -DCMAKE_INSTALL_PREFIX="$prefix/install"
 cmake --build "$root/build-ios-sdl" --config Release --target install --parallel "${JOBS:-4}"
 fi
 cmake -S "$root" -B "$root/build-ios" "${common[@]}" \
-    -DCMAKE_PREFIX_PATH="$prefix/install" \
+    -DCMAKE_PREFIX_PATH="$prefix/install" -DSDL3_DIR="$prefix/install/lib/cmake/SDL3" \
     -DZIPDIR_EXECUTABLE="$root/ports/ios/zipdir.py"
 cmake --build "$root/build-ios" --config Release --target DXEngine --parallel "${JOBS:-4}"
 app="$root/build-ios/Release-iphoneos/DXEngine.app"

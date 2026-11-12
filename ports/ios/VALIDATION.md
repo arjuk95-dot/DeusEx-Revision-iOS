@@ -147,3 +147,14 @@ GitHub actions expose no repository-create/fork operation; arjuk95-dot has only
 BCD/FNV repositories, deliberately not reused. Latest Legion browser inventory
 shows Edge/Chrome extension, not the user-preferred in-app browser. No Apple
 execution environment is connected. No GitHub runner time has been spent.
+
+## First Apple build result
+
+Run 43220750723 on standard macos-15-intel/Xcode 16.4 built and installed
+SDL3 for arm64 iPhoneOS successfully. Engine configure then failed to locate
+SDL3Config.cmake even though the installation log showed it present. iOS package
+rooting excluded the external target dependency prefix. Fixed iOS lookup to require
+an explicit SDL3_DIR and search that path without SDK rerooting or host fallback.
+A synthetic CMake package test with root-only lookup verifies the search pattern;
+actual Apple engine compile remains pending. Cache save is now independent of
+engine success, retaining successfully installed SDL after later build failures.
