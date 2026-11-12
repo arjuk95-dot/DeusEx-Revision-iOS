@@ -132,3 +132,14 @@ proof that Objective-C++, UIKit, Apple audio, or an iOS app works.
    with their Steam data; inspect `Documents/DXEngine/startup.log`.
 4. Reach Revision's menu/first level using a gamepad, save/load, and resume from
    background. Only then add touch controls and pursue renderer performance.
+
+## Optional private app icon
+
+Set `DXE_APP_ICON=/private/path/AppIcon.png` on the Apple build machine to compile
+an owner-cleared icon before packaging. The helper uses actool and supplies
+LiveContainer-readable loose renditions. It rejects signed apps or existing icon
+metadata/catalogs rather than overwriting them. The generated Revision branding
+master is deliberately not in this public source repository pending redistribution
+review; a build without the optional input remains iconless. Device icon display
+and actool integration require Apple validation. No extra CI run is needed solely
+for icons.

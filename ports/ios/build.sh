@@ -31,5 +31,10 @@ mkdir -p "$app/Licenses"
 cp "$root/LICENSE.md" "$app/Licenses/DXEngine-and-third-parties.md"
 cp "$root/Thirdparty/openal-soft/COPYING" "$app/Licenses/OpenAL-Soft.txt"
 cp "$prefix/SDL/LICENSE.txt" "$app/Licenses/SDL3.txt"
+# Branded icon masters remain private until redistribution is approved.
+# Supply an owner-cleared private input on the build machine, never game assets.
+if [[ -n "${DXE_APP_ICON:-}" ]]; then
+    python3 "$root/ports/ios/compile_icon.py" "$DXE_APP_ICON" "$app" --minimum-os 15.0
+fi
 python3 "$root/ports/ios/package_ipa.py" "$app" \
     "$root/dist/DXEngine-iOS-bringup-unsigned.ipa"
