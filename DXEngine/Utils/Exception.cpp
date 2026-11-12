@@ -35,7 +35,7 @@ struct InitDbgHelp
 	bool bHasSymbols;
 };
 
-#elif defined __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 
 #include <execinfo.h>
 #include <cxxabi.h>
@@ -146,11 +146,13 @@ int Exception::CaptureStackFrames(std::ostringstream& sstream, int maxframes)
 
 
 /////////////////////////////////////////////////////////////////////
-#elif defined __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 
 	// The frames by backtrace, named where the dynamic symbols name them
 	// (the engine's own are not exported: those stay addresses, which
-	// addr2line resolves against the binary), demangled, down to main
+	// addr2line resolves against the binary), demangled, down to main.
+	// Apple uses a different symbol-line format; retain those complete lines
+	// (including addresses) for later symbolication rather than misparse them.
 	void* frames[64];
 	int count = backtrace(frames, std::min(maxframes, 64));
 	char** symbols = backtrace_symbols(frames, count);

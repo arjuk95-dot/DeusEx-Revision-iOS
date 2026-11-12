@@ -158,3 +158,10 @@ an explicit SDL3_DIR and search that path without SDK rerooting or host fallback
 A synthetic CMake package test with root-only lookup verifies the search pattern;
 actual Apple engine compile remains pending. Cache save is now independent of
 engine success, retaining successfully installed SDL after later build failures.
+
+Run 43222788285 passed the SDL discovery fix and reached Apple engine compilation.
+It stopped at Exception.cpp's explicit unsupported-target guard. Extended the
+existing execinfo/backtrace implementation to Apple; Apple-format symbol lines
+are retained verbatim for symbolication rather than assuming glibc formatting.
+The successful target SDL dependency was cached despite engine failure. No IPA
+exists from this run; the next Apple compile must validate remaining sources.
