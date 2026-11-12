@@ -165,3 +165,10 @@ existing execinfo/backtrace implementation to Apple; Apple-format symbol lines
 are retained verbatim for symbolication rather than assuming glibc formatting.
 The successful target SDL dependency was cached despite engine failure. No IPA
 exists from this run; the next Apple compile must validate remaining sources.
+
+Run 43252050540 compiled all sources and reached final arm64 Apple link. It
+failed only because SDL_main.h's main macro renamed GameApp::main in MainIOS.mm.
+Moved SDL's entrypoint include below the engine bootstrap helper and left a small
+main wrapper afterward. A regression test checks declaration/call ordering so
+SDL's macro cannot affect the engine's main method again. Actual Apple relink
+is pending; no IPA produced by this run. SDL dependency cache was restored.

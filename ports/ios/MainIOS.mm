@@ -1,7 +1,6 @@
 // iOS bootstrap added for the Arjuk port; not part of upstream DXEngine.
 #import <Foundation/Foundation.h>
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
 #include "Precomp.h"
 #include "GameApp.h"
 #include "LauncherSettings.h"
@@ -11,7 +10,7 @@
 #include <cstdio>
 #include <exception>
 
-int main(int argc, char** argv)
+static int RunIOSGame()
 {
     @autoreleasepool
     {
@@ -50,4 +49,14 @@ int main(int argc, char** argv)
             return 1;
         }
     }
+}
+
+// SDL_main.h defines the token `main` as SDL_main on iOS. Keep it below
+// all engine declarations and calls so GameApp::main is not renamed too.
+#include <SDL3/SDL_main.h>
+int main(int argc, char** argv)
+{
+    (void)argc;
+    (void)argv;
+    return RunIOSGame();
 }
