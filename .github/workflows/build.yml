@@ -32,6 +32,8 @@ permissions:
 
 jobs:
   ports:
+    # Preserve upstream CI without spending fork minutes on every desktop port.
+    if: github.repository == 'JuggyMcNutty/DXEngine'
     uses: JuggyMcNutty/port-ex-machina/.github/workflows/ports.yml@main
     with:
       ports: all

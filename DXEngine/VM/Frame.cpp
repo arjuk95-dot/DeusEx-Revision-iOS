@@ -461,7 +461,7 @@ ExpressionValue Frame::CallNative(UFunction* func, UObject* instance, CallArgume
 		}
 		else
 		{
-			Exception::Throw("Unknown native function " + func->NativeStruct->Name.ToString() + "." + func->Name.ToString());
+			Exception::Throw("Unknown native function " + func->NativeStruct->GetPathName() + "." + func->Name.ToString() + " (index " + std::to_string(func->NativeFuncIndex) + ")");
 		}
 	}
 	else
@@ -498,7 +498,7 @@ ExpressionValue Frame::CallNative(UFunction* func, UObject* instance, CallArgume
 		}
 		else
 		{
-			Exception::Throw("Unknown native function " + func->NativeStruct->Name.ToString() + "." + func->Name.ToString());
+			Exception::Throw("Unknown native function " + func->NativeStruct->GetPathName() + "." + func->Name.ToString() + " (index " + std::to_string(func->NativeFuncIndex) + ")");
 		}
 	}
 

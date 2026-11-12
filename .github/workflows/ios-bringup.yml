@@ -1,0 +1,46 @@
+name: iOS bring-up (manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-bringup-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record toolchain
+        id: sdk
+        run: |
+          xcodebuild -version
+          echo "version=$(xcodebuild -version | tr '\n ' '--')" >> "$GITHUB_OUTPUT"
+      - name: Cache pinned SDL build
+        uses: actions/cache@v4
+        with:
+          path: .ios-deps
+          key: ios-sdl-3.2.30-static-v1-${{ runner.arch }}-${{ steps.sdk.outputs.version }}
+      - name: Compile iPhone device app
+        run: |
+          set -o pipefail
+          ports/ios/build.sh 2>&1 | tee ios-build.log
+      - name: Save relink objects for licensing and debugging
+        if: success()
+        run: |
+          find build-ios -type f \( -name '*.o' -o -name '*.a' \) -print > relink-files.txt
+          test -s relink-files.txt
+          tar -czf ios-relink-objects.tar.gz -T relink-files.txt
+      - name: Keep internal build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-bringup-${{ github.sha }}
+          path: |
+            dist/*.ipa
+            ios-build.log
+            ios-relink-objects.tar.gz
+            relink-files.txt
+          if-no-files-found: error
+          retention-days: 14

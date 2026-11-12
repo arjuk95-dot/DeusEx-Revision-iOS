@@ -20,6 +20,9 @@
 #include "Utils/Exception.h"
 #include <cstring>
 #include <sstream>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 #include <cstdio>
 
 #ifdef WIN32
@@ -466,6 +469,15 @@ std::string OS::executable_path()
 	_wsplitpath_s(exe_filename, drive, _MAX_DRIVE, dir, _MAX_DIR, NULL, 0, NULL, 0);
 
 	return from_utf16(std::wstring(drive) + dir);
+#elif defined(__APPLE__)
+	// iOS/macOS have no /proc/self/exe. dyld reports the app executable;
+	// pk3 resources are staged beside it in the iOS app bundle.
+	uint32_t size = 0;
+	_NSGetExecutablePath(nullptr, &size);
+	std::vector<char> path(size);
+	if (!size || _NSGetExecutablePath(path.data(), &size) != 0)
+		Exception::Throw("Could not locate the app executable");
+	return fs::path(path.data()).parent_path().string() + "/";
 #else
 	#ifndef PROC_EXE_PATH
 	#define PROC_EXE_PATH "/proc/self/exe"

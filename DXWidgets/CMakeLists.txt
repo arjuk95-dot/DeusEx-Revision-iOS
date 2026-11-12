@@ -22,7 +22,7 @@ option(ENABLE_WAYLAND "Enable the Wayland display backend" ON)
 # Off, it is SDL's own FULLSCREEN_DESKTOP.
 option(DXE_SDL2_BORDERLESS_FULLSCREEN "SDL2 fullscreen as a borderless window, for a vendor SDL2 that deadlocks in SDL_SetWindowFullscreen" OFF)
 
-if (UNIX)
+if (UNIX AND NOT DXE_IOS)
 	include(FindPkgConfig)
 	if (ENABLE_X11 OR ENABLE_WAYLAND)
 		pkg_check_modules(DBUS dbus-1)
@@ -52,7 +52,12 @@ endif()
 # Optional on all platforms
 # If both SDL3 and SDL2 are available, only SDL3 support will be enabled.
 if(ENABLE_SDL3)
-	find_package(SDL3 QUIET)
+	if(DXE_IOS)
+		# Never accidentally link a host pkg-config SDL when cross compiling.
+		find_package(SDL3 CONFIG REQUIRED)
+	else()
+		find_package(SDL3 QUIET)
+	endif()
 	if(NOT ${SDL3_FOUND})
 		include(FindPkgConfig)
 		pkg_search_module(SDL3 sdl3)

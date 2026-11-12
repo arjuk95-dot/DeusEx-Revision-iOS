@@ -197,7 +197,11 @@ void GameApp::Relaunch(const Array<std::string>& args, const std::string& line)
 	}
 	next.push_back("--cmdline=" + line);
 
-#ifndef _WIN32
+#if defined(DXE_IOS)
+	// UIKit owns the process. execv is not an app relaunch mechanism on iOS.
+	// A future in-process session reset must reset the engine's singletons.
+	std::cerr << "Relaunch is not supported by the iOS bring-up build; reopen the app" << std::endl;
+#elif !defined(_WIN32)
 	char path[4096];
 	ssize_t length = readlink("/proc/self/exe", path, sizeof(path) - 1);
 	if (length <= 0)

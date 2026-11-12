@@ -2,6 +2,18 @@ cmake_minimum_required(VERSION 3.15)
 
 project(DXEngine)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+	set(DXE_IOS ON)
+	enable_language(OBJCXX)
+	# UIKit has neither a desktop display server nor desktop font services.
+	set(ENABLE_X11 OFF CACHE BOOL "" FORCE)
+	set(ENABLE_WAYLAND OFF CACHE BOOL "" FORCE)
+	set(ENABLE_SDL2 OFF CACHE BOOL "" FORCE)
+	set(ENABLE_SDL3 ON CACHE BOOL "" FORCE)
+	add_compile_definitions(DXE_IOS)
+	find_package(SDL3 CONFIG REQUIRED)
+endif()
+
 # The warnings DXCommon, DXEngine, DXWidgets and DXGPU are built with: -Wall
 # on GCC and Clang, the third-party code in them too where it builds clean;
 # glslang and VMA at the compilers' defaults, picoPNG without its one
@@ -15,7 +27,7 @@ add_subdirectory(Thirdparty/openmpt)
 add_subdirectory(DXGPU)
 add_subdirectory(DXWidgets)
 
-if (WIN32)
+if (WIN32 OR DXE_IOS)
 	# OpenAL Soft as OpenAL32.dll beside the engine (LGPL, so a library of its
 	# own): its library alone -- none of its programs or install rules, no
 	# PipeWire, nor the steps that run sed, dlltool or git while building.
@@ -30,6 +42,13 @@ if (WIN32)
 	set(ALSOFT_UPDATE_BUILD_VERSION OFF CACHE BOOL "" FORCE)
 	set(ALSOFT_BUILD_IMPORT_LIB OFF CACHE BOOL "" FORCE)
 	set(ALSOFT_BACKEND_PIPEWIRE OFF CACHE BOOL "" FORCE)
+	if(DXE_IOS)
+		# A self-contained first bring-up. Distributions must provide source
+		# and relink materials for this LGPL dependency; see ports/ios/README.md.
+		set(LIBTYPE STATIC CACHE STRING "" FORCE)
+		set(ALSOFT_BACKEND_COREAUDIO ON CACHE BOOL "" FORCE)
+		set(ALSOFT_REQUIRE_COREAUDIO ON CACHE BOOL "" FORCE)
+	endif()
 	add_subdirectory(Thirdparty/openal-soft)
 endif()
 
@@ -193,6 +212,8 @@ set(DXCOMMON_SOURCES
 	DXEngine/Native/NTcpLink.h
 	DXEngine/Native/NUdpLink.cpp
 	DXEngine/Native/NUdpLink.h
+	DXEngine/Native/NGamePlatform.cpp
+	DXEngine/Native/NGamePlatform.h
 	DXEngine/Native/NDebugInfo.cpp
 	DXEngine/Native/NDebugInfo.h
 	DXEngine/Native/NDeusExPlayer.cpp
@@ -818,9 +839,11 @@ set(DXCOMMON_WIN32_LIBS
 	psapi
 )
 
-set(DXCOMMON_UNIX_LIBS
-	openal
-)
+if(DXE_IOS)
+	set(DXCOMMON_UNIX_LIBS OpenAL)
+else()
+	set(DXCOMMON_UNIX_LIBS openal)
+endif()
 
 set(DXENGINE_SOURCES
 	DXEngine/MainGame.cpp
@@ -923,7 +946,24 @@ set_target_properties(DXCommon PROPERTIES CXX_STANDARD 20)
 target_precompile_headers(DXCommon PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/DXEngine/Precomp.h>)
 include(cmake/version.cmake)
 
-add_executable(DXEngine WIN32 ${DXENGINE_SOURCES})
+if(DXE_IOS)
+	set(DXE_APP_PLATFORM "iPhoneOS")
+	if(CMAKE_OSX_SYSROOT MATCHES "iphonesimulator")
+		set(DXE_APP_PLATFORM "iPhoneSimulator")
+	endif()
+	add_executable(DXEngine MACOSX_BUNDLE ports/ios/MainIOS.mm)
+	target_link_libraries(DXEngine SDL3::SDL3 "-framework Foundation")
+	set_target_properties(DXEngine PROPERTIES
+		OBJCXX_STANDARD 20
+		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/ports/ios/Info.plist.in"
+		MACOSX_BUNDLE_GUI_IDENTIFIER "com.arjuk.dxengine"
+		MACOSX_BUNDLE_BUNDLE_NAME "DXEngine"
+		MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0"
+		MACOSX_BUNDLE_BUNDLE_VERSION "1"
+		XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
+else()
+	add_executable(DXEngine WIN32 ${DXENGINE_SOURCES})
+endif()
 if(MINGW)
 	# wWinMain, as MSVC takes it.
 	target_link_options(DXEngine PRIVATE -municode)

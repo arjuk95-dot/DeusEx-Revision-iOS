@@ -240,6 +240,7 @@
 #include "Native/NTcpLink.h"
 #include "Native/NUdpLink.h"
 #include "Native/NDebugInfo.h"
+#include "Native/NGamePlatform.h"
 #include "Native/NDeusExDecoration.h"
 #include "Native/NDeusExPlayer.h"
 #include "Native/NDeusExSaveInfo.h"
@@ -1447,6 +1448,7 @@ void PackageManager::RegisterFunctions()
 	NTcpLink::RegisterFunctions();
 	NUdpLink::RegisterFunctions();
 	NDebugInfo::RegisterFunctions();
+	NGamePlatform::RegisterFunctions();
 	NDeusExDecoration::RegisterFunctions();
 	NDeusExPlayer::RegisterFunctions();
 	NDeusExSaveInfo::RegisterFunctions();

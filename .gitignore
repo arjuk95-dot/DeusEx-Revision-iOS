@@ -5,3 +5,9 @@
 .vscode
 *.internal
 /*.sln
+
+# Local iOS port builds and SDK staging; never commit game data.
+/build-*/
+/.ios-deps/
+/dist/
+__pycache__/
