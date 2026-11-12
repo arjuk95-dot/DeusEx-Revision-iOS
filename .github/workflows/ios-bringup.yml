@@ -8,7 +8,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   ios:
-    runs-on: macos-15
+    # Standard Intel capacity; still cross-compiles an arm64 iPhone device app.
+    # Avoid macos-15's constrained ARM pool and paid large/xlarge labels.
+    runs-on: macos-15-intel
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
