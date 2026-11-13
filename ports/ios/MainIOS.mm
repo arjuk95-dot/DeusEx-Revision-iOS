@@ -48,11 +48,30 @@ static int RunIOSGame()
             setenv("DXE_DISPLAY_BACKEND", "SDL3", 1);
             setenv("DXE_REVISION_ORIGINAL_MUSIC", "1", 1);
             std::fprintf(stderr, "Revision: original tracker soundtrack only; custom Ogg unavailable\n");
-            // First milestone: CPU rasterizer + SDL's Metal presentation.
-            // Do not request desktop GL / ES 3.2 or Vulkan without MoltenVK.
+            // Vulkan rasterizes the scene on the Apple GPU through bundled MoltenVK.
+            // Explicit Software preference is retained for recovery, never silently used.
             auto& settings = LauncherSettings::Get();
             settings.Gamepad.Enabled = true;
-            settings.RenderDevice.Type = RenderDeviceType::Software;
+            const bool software = userProfile.GetValue("DXEngine.iOS", "Renderer") == "Software";
+            settings.RenderDevice.Type = software ? RenderDeviceType::Software : RenderDeviceType::Vulkan;
+            settings.RenderDevice.CPUDriver = false;
+            if (!software)
+            {
+                NSString* library = [[[NSBundle mainBundle] privateFrameworksPath]
+                    stringByAppendingPathComponent:@"MoltenVK.framework/MoltenVK"];
+                if (![[NSFileManager defaultManager] fileExistsAtPath:library])
+                    throw std::runtime_error("Bundled MoltenVK framework missing; GPU build is incomplete");
+                // SDL and volk must load exactly the same Vulkan implementation.
+                SDL_SetHint(SDL_HINT_VULKAN_LIBRARY, library.UTF8String);
+                setenv("DXE_IOS_VULKAN_LIBRARY", library.UTF8String, 1);
+                setenv("DXE_IOS_REQUIRE_GPU", "1", 1);
+                std::fprintf(stderr, "iOS renderer: Vulkan via bundled MoltenVK; CPU fallback disabled\n");
+            }
+            else
+            {
+                unsetenv("DXE_IOS_REQUIRE_GPU");
+                std::fprintf(stderr, "iOS renderer: explicitly selected Software recovery mode\n");
+            }
             settings.RenderDevice.TypeNamed = true;
             // Read optional mobile preferences; never rewrite the user's profile.
             const auto scale=userProfile.GetValue("DXEngine.iOS", "RenderScale");

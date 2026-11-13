@@ -2,6 +2,9 @@
 /* This file is part of volk library; see volk.h for version/license details */
 /* clang-format off */
 #include "volk/volk.h"
+#ifdef DXE_IOS
+#include <stdlib.h>
+#endif
 
 #ifdef _WIN32
 	typedef const char* LPCSTR;
@@ -64,7 +67,12 @@ VkResult volkInitialize(void)
 	// note: function pointer is cast through void function pointer to silence cast-function-type warning on gcc8
 	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)(void(*)(void))GetProcAddress(module, "vkGetInstanceProcAddr");
 #elif defined(__APPLE__)
-	void* module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
+	#if defined(DXE_IOS)
+    const char* bundledLibrary = getenv("DXE_IOS_VULKAN_LIBRARY");
+    void* module = bundledLibrary ? dlopen(bundledLibrary, RTLD_NOW | RTLD_LOCAL) : NULL;
+#else
+    void* module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
+#endif
 	if (!module)
 		module = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
 	if (!module)

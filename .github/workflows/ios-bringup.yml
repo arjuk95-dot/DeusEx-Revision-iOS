@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .ios-deps
-          key: ios-sdl-3.2.30-static-v1-${{ runner.arch }}-${{ steps.sdk.outputs.version }}
+          key: ios-sdl-3.2.30-vulkan-mvk142-v1-${{ runner.arch }}-${{ steps.sdk.outputs.version }}
       - name: Touch ownership and private profile tests
         run: |
           clang++ -std=c++17 tests/ios/touch_state.cpp -o /tmp/touch-state
@@ -41,7 +41,7 @@ jobs:
           set -o pipefail
           ports/ios/build.sh 2>&1 | tee ios-build.log
       - name: Preserve successful SDL dependency even if engine fails
-        if: always() && steps.sdl-cache.outputs.cache-hit != 'true' && hashFiles('.ios-deps/install/lib/cmake/SDL3/SDL3Config.cmake') != '' && hashFiles('.ios-deps/install/lib/libSDL3.a') != ''
+        if: always() && steps.sdl-cache.outputs.cache-hit != 'true' && hashFiles('.ios-deps/install-vulkan-v1/lib/cmake/SDL3/SDL3Config.cmake') != '' && hashFiles('.ios-deps/install-vulkan-v1/lib/libSDL3.a') != ''
         uses: actions/cache/save@v4
         with:
           path: .ios-deps

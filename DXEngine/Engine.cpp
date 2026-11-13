@@ -3584,6 +3584,10 @@ std::unique_ptr<GameWindow> Engine::CreateGameWindow(RenderDeviceType type)
 		}
 		catch (const std::exception& e)
 		{
+#ifdef DXE_IOS
+            if (std::getenv("DXE_IOS_REQUIRE_GPU"))
+                throw; // Do not disguise failed GPU initialization as a working GPU build.
+#endif
 			// The error's first line, without the stack Exception::Throw adds
 			std::string error = e.what();
 			error = error.substr(0, error.find('\n'));
