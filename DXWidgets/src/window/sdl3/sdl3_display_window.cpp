@@ -2,6 +2,7 @@
 #ifdef DXE_IOS
 #include "ios_touch_glyphs.h"
 #include "ios_presentation.h"
+#include <dxwidgets/window/ios_lifecycle.h>
 #endif
 #include <stdexcept>
 #include <SDL3/SDL_vulkan.h>
@@ -605,6 +606,14 @@ void SDL3DisplayWindow::ProcessEvents()
 	{
 		DispatchEvent(event);
 	}
+#ifdef DXE_IOS
+    // Pump UIKit for foreground notifications, without returning to game/render.
+    while (IOSLifecycle::IsSuspended())
+    {
+        if (SDL_WaitEventTimeout(&event, 100))
+            DispatchEvent(event);
+    }
+#endif
 }
 
 void SDL3DisplayWindow::RunLoop()
@@ -717,6 +726,20 @@ SDL3DisplayWindow* SDL3DisplayWindow::FindEventWindow(const SDL_Event& event)
 
 void SDL3DisplayWindow::DispatchEvent(const SDL_Event& event)
 {
+#ifdef DXE_IOS
+    if (event.type == SDL_EVENT_WILL_ENTER_BACKGROUND)
+    {
+        for (auto& entry : WindowList)
+        {
+            entry.second->Touch.Reset();
+            entry.second->TouchSync();
+        }
+        return;
+    }
+    // No queued paint/timer callback may submit while the pump is parked.
+    if (IOSLifecycle::IsSuspended() && event.type != SDL_EVENT_QUIT)
+        return;
+#endif
 	// timers are created in a non-window context
 	if (event.type == TimerEventID)
 		return OnTimerEvent(event.user);
@@ -949,7 +972,7 @@ InputKey SDL3DisplayWindow::KeyEventToInputKey(const SDL_KeyboardEvent& event)
 // (dlls/winex11.drv/keyboard.c, main_key_vkey_*): the layout's family told
 // by what a few keys type (SDL's keycodes, Latin letters on any layout, a
 // dead key its US key's) -- AZERTY's A and Z, QWERTZ's Z and Y, Dvorak's O
-// and E, Swedish's (and Finnish's) ÃƒÂ¥, ÃƒÂ¶ and ÃƒÂ¤, Brazilian ABNT's ÃƒÂ§ and [,
+// and E, Swedish's (and Finnish's) ÃƒÆ’Ã‚Â¥, ÃƒÆ’Ã‚Â¶ and ÃƒÆ’Ã‚Â¤, Brazilian ABNT's ÃƒÆ’Ã‚Â§ and [,
 // Japanese 106's @ and : -- a QWERTY's keys by their places, as every other
 // layout's are, each other family's by its table, the French, Dvorak and
 // Swedish ones Windows' own. None for any other key.

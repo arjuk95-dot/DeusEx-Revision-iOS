@@ -24,6 +24,7 @@ public:
 	bool GetGamepadState(GamepadState& state) override;
 	void SetGamepadKeyEmulation(bool enable) override;
 	void SetTouchMenuMode(bool menu) override;
+	void VisitTouchLines(float width, float height, const std::function<void(float,float,float,float,float)>& line) override;
 	bool SimulateKey(const std::string& name, bool down) override;
 	bool SimulateKeyLayout(const std::string& family) override;
 	bool SimulateGamepadButton(GamepadButton button, bool down) override;

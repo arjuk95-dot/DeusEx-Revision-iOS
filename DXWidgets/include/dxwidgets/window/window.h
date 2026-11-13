@@ -483,6 +483,8 @@ public:
 	// would arrive twice.
 	virtual void SetGamepadKeyEmulation(bool enable) {}
 	virtual void SetTouchMenuMode(bool menu) {}
+	// Backend-neutral glyph geometry; no SDL bitmap renderer is required.
+	virtual void VisitTouchLines(float width, float height, const std::function<void(float,float,float,float,float)>& line) {}
 
 	// A key of the keyboard pressed or released, by the window system's own
 	// name for it (SDL's scancode names under SDL2 and SDL3: "Left Shift", "Keypad *"),

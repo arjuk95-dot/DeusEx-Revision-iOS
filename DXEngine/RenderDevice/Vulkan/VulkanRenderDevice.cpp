@@ -11,6 +11,37 @@
 #include <cmath>
 #include <cstdlib>
 #include <stdexcept>
+#ifdef DXE_IOS
+#include <SDL3/SDL_events.h>
+#include <dxwidgets/window/ios_lifecycle.h>
+
+static bool IOSVulkanLifecycleWatch(void* userdata, SDL_Event* event)
+{
+    auto* renderer = static_cast<VulkanRenderDevice*>(userdata);
+    if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND)
+    {
+        // SDL calls this synchronously from UIKit, before queue polling. Drain
+        // already submitted Metal work before returning to the OS notification.
+        IOSLifecycle::Suspend();
+        renderer->BackgroundDrainResult = vkDeviceWaitIdle(renderer->Device->device);
+    }
+    else if (event->type == SDL_EVENT_DID_ENTER_FOREGROUND)
+    {
+        // WILL_ENTER_FOREGROUND is too early to acquire a drawable or submit.
+        IOSLifecycle::Resume();
+    }
+    return true;
+}
+
+void VulkanRenderDevice::EnsureForeground()
+{
+    while (IOSLifecycle::IsSuspended())
+        DisplayWindow::ProcessEvents();
+    // Do not throw across the SDL callback, or hide a genuine device failure.
+    if (BackgroundDrainResult != VK_SUCCESS)
+        throw std::runtime_error("Vulkan background drain failed: " + std::to_string(BackgroundDrainResult));
+}
+#endif
 
 VulkanRenderDevice::VulkanRenderDevice(Widget* InViewport)
 {
@@ -104,6 +135,10 @@ VulkanRenderDevice::VulkanRenderDevice(Widget* InViewport)
 		// software device against Mesa's)
 		if (!CPUDriver && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
 			throw std::runtime_error(std::string("its only device draws on the CPU: ") + props.deviceName);
+#ifdef DXE_IOS
+        if (!SDL_AddEventWatch(IOSVulkanLifecycleWatch, this))
+            throw std::runtime_error("Unable to register iOS Vulkan lifecycle watch");
+#endif
 	}
 	catch (const std::exception& e)
 	{
@@ -113,6 +148,9 @@ VulkanRenderDevice::VulkanRenderDevice(Widget* InViewport)
 
 VulkanRenderDevice::~VulkanRenderDevice()
 {
+#ifdef DXE_IOS
+    SDL_RemoveEventWatch(IOSVulkanLifecycleWatch, this);
+#endif
 	if (Device)
 		vkDeviceWaitIdle(Device->device);
 
@@ -208,6 +246,9 @@ void VulkanRenderDevice::Flush(bool AllowPrecache)
 
 void VulkanRenderDevice::Lock(vec4 InFlashScale, vec4 InFlashFog, vec4 ScreenClear)
 {
+#ifdef DXE_IOS
+    EnsureForeground();
+#endif
 	// The previous frame may still be drawing (Unlock does not wait for it).
 	Commands->WaitForFrame();
 

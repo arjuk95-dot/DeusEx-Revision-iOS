@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <cmath>
+#include "ios_touch_state.h"
 namespace IOSTouch {
 struct Stroke {float x1,y1,x2,y2;};
 inline std::vector<Stroke> Glyph(int id,bool menu){
@@ -17,5 +18,26 @@ inline std::vector<Stroke> Glyph(int id,bool menu){
  case 8:arc(0,0,.55f,-2.8f,2.1f);line(-.5f,-.2f,-.6f,-.65f);line(-.5f,-.2f,-.05f,-.25f);break;
  case 9:case 10:{float d=id==9?-1.f:1.f;line(-.3f*d,-.5f,.3f*d,0);line(.3f*d,0,-.3f*d,.5f);break;}
  }return s;
+}
+}
+
+namespace IOSTouch {
+// Pure geometry shared with the Vulkan overlay, independently testable.
+template<class Line> inline void OverlayLines(const State& touch,float width,float height,Line line) {
+  auto ring = [&](float x,float y,float radius,float light) {
+   for(int i=0;i<48;i++) {float a=i*6.2831853f/48,b=(i+1)*6.2831853f/48;
+    line(x+radius*std::cos(a),y+radius*std::sin(a),x+radius*std::cos(b),y+radius*std::sin(b),light);}
+  };
+  for(const auto& b:IOSTouch::Layout(touch.menu)) {
+   float x=b.x*width,y=b.y*height,r=b.r*height,s=r*.66f;
+   float light=touch.buttons[b.id]?1.f:.82f;
+   ring(x,y,r,light);
+   for(const auto& g:IOSTouch::Glyph(b.id,touch.menu))
+    line(x+g.x1*s,y+g.y1*s,x+g.x2*s,y+g.y2*s,light);
+  }
+  float x=.19f*width,y=.72f*height;
+  for(const auto& finger:touch.fingers) if(finger.second.owner==-1){x=finger.second.x*width;y=finger.second.y*height;}
+  ring(x,y,.14f*height,.55f);
+  ring(x+touch.lx*.14f*height,y+touch.ly*.14f*height,.035f*height,.8f);
 }
 }

@@ -23,6 +23,10 @@ public:
 	VulkanRenderDevice(Widget* viewport);
 	~VulkanRenderDevice();
 
+#ifdef DXE_IOS
+    void EnsureForeground();
+    int BackgroundDrainResult = 0;
+#endif
 	void Flush(bool AllowPrecache) override;
 	void Lock(vec4 FlashScale, vec4 FlashFog, vec4 ScreenClear) override;
 	void SetLODBias(float bias) override;

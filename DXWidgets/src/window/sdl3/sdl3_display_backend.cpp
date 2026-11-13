@@ -1,5 +1,6 @@
 #include "sdl3_display_backend.h"
 #include "sdl3_display_window.h"
+#include "ios_touch_glyphs.h"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
@@ -321,5 +322,19 @@ void SDL3DisplayBackend::SetTouchMenuMode(bool menu)
  for(auto& entry:SDL3DisplayWindow::WindowList){auto* w=entry.second;w->TouchEnabled=true;if(w->Touch.menu!=menu){w->Touch.SetMenu(menu);w->TouchSync();}}
 #else
  (void)menu;
+#endif
+}
+
+void SDL3DisplayBackend::VisitTouchLines(float width, float height, const std::function<void(float,float,float,float,float)>& line)
+{
+#ifdef DXE_IOS
+ for (auto& entry : SDL3DisplayWindow::WindowList) {
+  auto* window = entry.second;
+  if (!window->TouchEnabled) continue;
+  IOSTouch::OverlayLines(window->Touch,width,height,line);
+  break; // Only the active game's touch surface, never one overlay per window.
+ }
+#else
+ (void)width; (void)height; (void)line;
 #endif
 }

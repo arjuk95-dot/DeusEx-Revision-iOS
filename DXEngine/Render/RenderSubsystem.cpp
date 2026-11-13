@@ -1,5 +1,7 @@
 
 #include "Precomp.h"
+#include <cstdlib>
+#include <cstdio>
 #include "RenderSubsystem.h"
 #include "RenderDevice/RenderDevice.h"
 #include "GameWindow.h"
@@ -110,8 +112,31 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 	}
 
 	PostRender();
-
+#ifdef DXE_IOS
+ // Vulkan does not call SDL's software bitmap Present/TouchDraw path.
+ // Draw the same hit-region glyphs through the active GPU before presenting.
+ if (std::getenv("DXE_IOS_REQUIRE_GPU")) {
+  Device->SetSceneNode(&Canvas.Frame);
+  DisplayBackend::Get()->VisitTouchLines(Canvas.Frame.FX,Canvas.Frame.FY,
+   [&](float x1,float y1,float x2,float y2,float light) {
+    Device->Draw2DLine(&Canvas.Frame,vec4(.03f,.04f,.05f,1.f),0,vec3(x1+1,y1+1,1.f),vec3(x2+1,y2+1,1.f));
+    Device->Draw2DLine(&Canvas.Frame,vec4(light*.92f,light*.97f,light,1.f),0,vec3(x1,y1,1.f),vec3(x2,y2,1.f));
+   });
+ }
+#endif
 	Device->Unlock(true);
+#ifdef DXE_IOS
+ if (std::getenv("DXE_IOS_REQUIRE_GPU")) {
+  static unsigned sampleFrames=0;
+  static auto sampleStart=std::chrono::steady_clock::now();
+  if(sampleFrames==0) std::fprintf(stderr,"iOS Vulkan: frame submitted with glyph overlay; viewport %.0fx%.0f, render scale %.3f\n",Canvas.Frame.FX,Canvas.Frame.FY,Device->GetRenderScale());
+  if(++sampleFrames%120==0) {
+   const auto end=std::chrono::steady_clock::now();
+   std::fprintf(stderr,"iOS Vulkan: 120-frame wall cadence %.2f ms/frame (includes engine/input/presentation)\n",std::chrono::duration<double,std::milli>(end-sampleStart).count()/120.0);
+   sampleStart=end;
+  }
+ }
+#endif
 	FrameInProgress = false;
 	FrameDrawn = true;
 }

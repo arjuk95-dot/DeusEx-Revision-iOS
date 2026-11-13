@@ -55,6 +55,10 @@ static int RunIOSGame()
             const bool software = userProfile.GetValue("DXEngine.iOS", "Renderer") == "Software";
             settings.RenderDevice.Type = software ? RenderDeviceType::Software : RenderDeviceType::Vulkan;
             settings.RenderDevice.CPUDriver = false;
+            // Desktop defaults used 4x MSAA even for phone menus. Keep it opt-in.
+            const auto aa = userProfile.GetValue("DXEngine.iOS", "MSAA");
+            settings.RenderDevice.Antialias = aa == "4" ? AntialiasMode::MSAA4x : aa == "2" ? AntialiasMode::MSAA2x : AntialiasMode::Off;
+            std::fprintf(stderr,"iOS MSAA: %s\n",aa == "4" ? "4x" : aa == "2" ? "2x" : "off");
             if (!software)
             {
                 NSString* library = [[[NSBundle mainBundle] privateFrameworksPath]

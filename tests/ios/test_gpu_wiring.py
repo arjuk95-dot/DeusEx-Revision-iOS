@@ -18,3 +18,15 @@ class GPUWiring(unittest.TestCase):
         self.assertIn('install-vulkan-v1', build)
         self.assertIn('b5d947b1660e6e9fed40b9cd2387e160aaab9e80b775c0cef7e14059405178c1', build)
         self.assertIn('"$app/Frameworks/"', build)
+
+    def test_gpu_overlay_is_before_present(self):
+        render=(ROOT/'DXEngine/Render/RenderSubsystem.cpp').read_text()
+        start=render.index('PostRender();')
+        self.assertLess(render.index('VisitTouchLines',start),render.index('Device->Unlock(true)',start))
+        backend=(ROOT/'DXWidgets/src/window/sdl3/sdl3_display_backend.cpp').read_text().split('void SDL3DisplayBackend::VisitTouchLines')[1]
+        self.assertIn('IOSTouch::OverlayLines',backend)
+        self.assertNotIn('RendererHandle',backend)
+    def test_mobile_msaa_is_opt_in(self):
+        boot=(ROOT/'ports/ios/MainIOS.mm').read_text()
+        self.assertIn('GetValue("DXEngine.iOS", "MSAA")',boot)
+        self.assertIn('AntialiasMode::MSAA2x : AntialiasMode::Off',boot)

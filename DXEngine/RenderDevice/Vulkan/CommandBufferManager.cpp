@@ -54,6 +54,9 @@ void CommandBufferManager::WaitForFrame()
 
 void CommandBufferManager::WaitForTransfer()
 {
+#ifdef DXE_IOS
+    renderer->EnsureForeground();
+#endif
 	WaitForFrame();
 	renderer->Uploads->SubmitUploads();
 
@@ -78,6 +81,9 @@ void CommandBufferManager::WaitForTransfer()
 
 void CommandBufferManager::SubmitCommands(bool present, int presentWidth, int presentHeight, bool wait)
 {
+#ifdef DXE_IOS
+    renderer->EnsureForeground();
+#endif
 	WaitForFrame();
 	renderer->Uploads->SubmitUploads();
 
