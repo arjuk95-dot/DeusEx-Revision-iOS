@@ -52,6 +52,9 @@
 #include "Packages/Extension/Flags/UFlagBase.h"
 #include "Packages/Extension/Windows/UGC.h"
 #include "Packages/Extension/Windows/TabGroup/URootWindow.h"
+#ifdef DXE_IOS
+#include "Packages/Extension/Windows/Text/UEditWindow.h"
+#endif
 #include "Packages/DeusEx/UDeusExLevelInfo.h"
 #include "Packages/DeusEx/UDeusExPlayer.h"
 #include "Packages/DeusEx/UDeusExSaveInfo.h"
@@ -3680,8 +3683,16 @@ void Engine::TickWindow()
 		// (every modal up grabs it -- the menus, conversations, computers and
 		// keypads) or the console typing. In play the keyboard is the game's alone, so a
 		// desktop's input method does not hold back held keys.
-		if ((dxRootWindow && dxRootWindow->IsKeyboardGrabbed()) || (console && console->bTyping()))
-			window->UnlockKeyboard();
+#ifdef DXE_IOS
+        // A modal menu grabs keys, but that alone must not summon the phone
+        // keyboard over profile/save selectors. Only an editable focused field.
+        auto* edit = dxRootWindow ? UObject::Cast<UEditWindow>(dxRootWindow->FocusWindow()) : nullptr;
+        const bool textEntry = (edit && edit->IsEditingEnabled()) || (console && console->bTyping());
+#else
+        const bool textEntry = (dxRootWindow && dxRootWindow->IsKeyboardGrabbed()) || (console && console->bTyping());
+#endif
+        if (textEntry)
+            window->UnlockKeyboard();
 		else
 			window->LockKeyboard();
 	}
