@@ -948,6 +948,10 @@ if(NOT MSVC)
 endif()
 
 add_library(DXCommon STATIC ${DXCOMMON_SOURCES} ${THIRDPARTY_SOURCES})
+if(DXE_IOS)
+	# Vulkan lifecycle watch consumes SDL events directly, not via dxwidgets.
+	target_link_libraries(DXCommon PRIVATE SDL3::SDL3)
+endif()
 target_compile_options(DXCommon PRIVATE ${CXX_WARNING_FLAGS})
 set_target_properties(DXCommon PROPERTIES CXX_STANDARD 20)
 target_precompile_headers(DXCommon PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/DXEngine/Precomp.h>)
@@ -1083,3 +1087,4 @@ if(MSVC)
 	# Create stripped PDBs for nightly builds
 	set_target_properties(DXEngine PROPERTIES LINK_FLAGS_RELWITHDEBINFO /PDBSTRIPPED:${CMAKE_CURRENT_BINARY_DIR}/RelWithDebInfo/DXEngine-stripped.pdb)
 endif()
+
