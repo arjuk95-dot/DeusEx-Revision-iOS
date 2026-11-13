@@ -3194,7 +3194,13 @@ std::string Engine::ConsoleCommand(UObject* context, const std::string& commandl
 		UClass* cls = packages->FindClassAnyPackage(className);
 		if (!cls)
 		{
-			LogMessage("Could not find class '" + className.ToString() + "': " + commandline);
+			// Revision probes this optional launcher property every gameplay tick.
+            // Keep the empty result and retry class lookup (packages can load later),
+            // but report this known missing capability once rather than growing logs.
+            if (className == "LaunchSystem" && propertyName == "Paths")
+                LogUnimplemented("GET LaunchSystem Paths: optional launcher class unavailable");
+            else
+                LogMessage("Could not find class '" + className.ToString() + "': " + commandline);
 			return {};
 		}
 

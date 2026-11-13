@@ -1,5 +1,11 @@
 
 #include "Precomp.h"
+#include <chrono>
+#include <cstdio>
+#ifdef DXE_IOS
+using ProbeClock = std::chrono::steady_clock;
+static double ProbeElapsed(ProbeClock::time_point t) { return std::chrono::duration<double,std::milli>(ProbeClock::now()-t).count(); }
+#endif
 #include "CommandBufferManager.h"
 #include "VulkanRenderDevice.h"
 #include <dxgpu/vulkanswapchain.h>
@@ -39,6 +45,9 @@ void CommandBufferManager::WaitForFrame()
 	if (!FramePending)
 		return;
 
+#ifdef DXE_IOS
+    const auto fenceStart = ProbeClock::now();
+#endif
 	VkResult result = vkWaitForFences(renderer->Device.get()->device, 1, &RenderFinishedFence->fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("vkWaitForFences failed");
@@ -46,6 +55,9 @@ void CommandBufferManager::WaitForFrame()
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("vkResetFences failed");
 
+#ifdef DXE_IOS
+    ProbeFenceMs += ProbeElapsed(fenceStart);
+#endif
 	FramePending = false;
 	PendingDrawCommands.reset();
 	PendingTransferCommands.reset();
@@ -100,6 +112,9 @@ void CommandBufferManager::SubmitCommands(bool present, int presentWidth, int pr
 			// device is idle.
 			vkDeviceWaitIdle(renderer->Device.get()->device);
 
+#ifdef DXE_IOS
+            ++ProbeRecreates;
+#endif
 			UsingVsync = renderer->UseVSync;
 			UsingHdr = renderer->Hdr;
 			RequestedWidth = presentWidth;
@@ -126,7 +141,13 @@ void CommandBufferManager::SubmitCommands(bool present, int presentWidth, int pr
 			}
 		}
 
-		PresentImageIndex = SwapChain->AcquireImage(ImageAvailableSemaphore.get());
+#ifdef DXE_IOS
+        const auto acquireStart = ProbeClock::now();
+#endif
+        PresentImageIndex = SwapChain->AcquireImage(ImageAvailableSemaphore.get());
+#ifdef DXE_IOS
+        ProbeAcquireMs += ProbeElapsed(acquireStart);
+#endif
 		if (PresentImageIndex != -1)
 		{
 			renderer->DrawPresentTexture(presentWidth, presentHeight);
@@ -160,11 +181,28 @@ void CommandBufferManager::SubmitCommands(bool present, int presentWidth, int pr
 		submit.AddWait(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, ImageAvailableSemaphore.get());
 		submit.AddSignal(RenderFinishedSemaphores[PresentImageIndex].get());
 	}
+#ifdef DXE_IOS
+    const auto submitStart = ProbeClock::now();
+#endif
 	submit.Execute(renderer->Device.get(), renderer->Device.get()->GraphicsQueue, RenderFinishedFence.get());
+#ifdef DXE_IOS
+    ProbeSubmitMs += ProbeElapsed(submitStart);
+#endif
 
 	if (present && PresentImageIndex != -1)
 	{
+#ifdef DXE_IOS
+        const auto presentStart = ProbeClock::now();
+#endif
 		SwapChain->QueuePresent(PresentImageIndex, RenderFinishedSemaphores[PresentImageIndex].get());
+#ifdef DXE_IOS
+        ProbePresentMs += ProbeElapsed(presentStart);
+        if (++ProbeFrames == 120) {
+            std::fprintf(stderr,"iOS Vulkan pacing: fence %.3f acquire %.3f submit %.3f present %.3f ms/frame; recreates %u, images %d, vsync %d; CPU-call times, not GPU timestamps\n",ProbeFenceMs/120,ProbeAcquireMs/120,ProbeSubmitMs/120,ProbePresentMs/120,ProbeRecreates,SwapChain->ImageCount(),int(UsingVsync));
+            ProbeFrames=ProbeRecreates=0;
+            ProbeFenceMs=ProbeAcquireMs=ProbeSubmitMs=ProbePresentMs=0;
+        }
+#endif
 	}
 
 	if (!wait)

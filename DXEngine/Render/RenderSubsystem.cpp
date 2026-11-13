@@ -25,6 +25,9 @@ RenderSubsystem::RenderSubsystem(RenderDevice* renderdevice) : Device(renderdevi
 
 void RenderSubsystem::DrawGame(float levelTimeElapsed)
 {
+#ifdef DXE_IOS
+    const auto probeBegin=std::chrono::steady_clock::now();
+#endif
 	DrawnSinceFlush = true;
 	LevelTimeElapsed = levelTimeElapsed;
 	TextureClock = UTexture::ClockNow();
@@ -82,6 +85,9 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 
 	Device->Brightness = engine->client->BrightnessInUse;
 	Device->Lock(vec4(flashScale, 0.0f), vec4(flashFog, 0.0f), vec4(0.0f));
+#ifdef DXE_IOS
+    const auto probeLocked=std::chrono::steady_clock::now();
+#endif
 	FrameInProgress = true;
 	// Every frame, the world drawn or not: a texture the windows or the
 	// canvas alone draw (a menu over the snapshot, the credits) steps on, as
@@ -113,6 +119,7 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
 
 	PostRender();
 #ifdef DXE_IOS
+ const auto probeDrawn=std::chrono::steady_clock::now();
  // Vulkan does not call SDL's software bitmap Present/TouchDraw path.
  // Draw the same hit-region glyphs through the active GPU before presenting.
  if (std::getenv("DXE_IOS_REQUIRE_GPU")) {
@@ -124,15 +131,26 @@ void RenderSubsystem::DrawGame(float levelTimeElapsed)
    });
  }
 #endif
+#ifdef DXE_IOS
+ const auto probeOverlay=std::chrono::steady_clock::now();
+#endif
 	Device->Unlock(true);
 #ifdef DXE_IOS
  if (std::getenv("DXE_IOS_REQUIRE_GPU")) {
   static unsigned sampleFrames=0;
+  static double phaseLock=0, phaseScene=0, phaseOverlay=0, phaseUnlock=0;
+  auto ms=[](auto a,auto b){return std::chrono::duration<double,std::milli>(b-a).count();};
+  phaseLock+=ms(probeBegin,probeLocked);
+  phaseScene+=ms(probeLocked,probeDrawn);
+  phaseOverlay+=ms(probeDrawn,probeOverlay);
+  phaseUnlock+=ms(probeOverlay,std::chrono::steady_clock::now());
   static auto sampleStart=std::chrono::steady_clock::now();
   if(sampleFrames==0) std::fprintf(stderr,"iOS Vulkan: frame submitted with glyph overlay; viewport %.0fx%.0f, render scale %.3f\n",Canvas.Frame.FX,Canvas.Frame.FY,Device->GetRenderScale());
   if(++sampleFrames%120==0) {
    const auto end=std::chrono::steady_clock::now();
    std::fprintf(stderr,"iOS Vulkan: 120-frame wall cadence %.2f ms/frame (includes engine/input/presentation)\n",std::chrono::duration<double,std::milli>(end-sampleStart).count()/120.0);
+   std::fprintf(stderr,"iOS Vulkan phases: lock %.3f sceneUI %.3f glyphs %.3f unlock %.3f ms/frame (CPU wall; not GPU timestamps)\n",phaseLock/120,phaseScene/120,phaseOverlay/120,phaseUnlock/120);
+   phaseLock=phaseScene=phaseOverlay=phaseUnlock=0;
    sampleStart=end;
   }
  }

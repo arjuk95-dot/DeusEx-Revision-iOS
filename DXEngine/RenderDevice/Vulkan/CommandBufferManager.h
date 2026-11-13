@@ -40,6 +40,10 @@ public:
 	int RequestedHeight = -1;
 
 private:
+#ifdef DXE_IOS
+    double ProbeFenceMs = 0, ProbeAcquireMs = 0, ProbeSubmitMs = 0, ProbePresentMs = 0;
+    unsigned ProbeFrames = 0, ProbeRecreates = 0;
+#endif
 	VulkanRenderDevice* renderer = nullptr;
 
 	std::unique_ptr<VulkanSemaphore> ImageAvailableSemaphore;
