@@ -537,6 +537,9 @@ void SDL3DisplayWindow::PresentBitmap(int width, int height, const uint32_t* pix
 	SDL_UnlockTexture(BackBufferTexture);
 
 	SDL_RenderTexture(RendererHandle, BackBufferTexture, nullptr, nullptr);
+	#ifdef DXE_IOS
+	TouchDraw();
+#endif
 	SDL_RenderPresent(RendererHandle);
 }
 
@@ -670,8 +673,10 @@ SDL3DisplayWindow* SDL3DisplayWindow::FindEventWindow(const SDL_Event& event)
 
 	if (event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST)
 		windowID = event.window.windowID;
-	else if (event.type == SDL_EVENT_TEXT_INPUT)
-		windowID = event.text.windowID;
+	else if (event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_UP || event.type == SDL_EVENT_FINGER_MOTION || event.type == SDL_EVENT_FINGER_CANCELED)
+        windowID = event.tfinger.windowID;
+    else if (event.type == SDL_EVENT_TEXT_INPUT)
+        windowID = event.text.windowID;
 	else if (event.type == SDL_EVENT_KEY_UP || event.type == SDL_EVENT_KEY_DOWN)
 		windowID = event.key.windowID;
 	else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
@@ -717,6 +722,12 @@ void SDL3DisplayWindow::DispatchEvent(const SDL_Event& event)
 
 	SDL3DisplayWindow* window = FindEventWindow(event);
 	if (!window) return;
+#ifdef DXE_IOS
+    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_UP || event.type == SDL_EVENT_FINGER_MOTION || event.type == SDL_EVENT_FINGER_CANCELED) {
+        window->TouchEvent(event.tfinger); return;
+    }
+    if(event.type == SDL_EVENT_WINDOW_FOCUS_LOST) {window->Touch.Reset();window->TouchSync();}
+#endif
 
 	static bool dropJoyDown, joyDown, keyDown;
 	static unsigned long eventFrame = 0;
@@ -1549,3 +1560,43 @@ SDL_Scancode SDL3DisplayWindow::InputKeyToScancode(InputKey inputkey)
 		default:                      return SDL_SCANCODE_UNKNOWN;
 	}
 }
+
+#ifdef DXE_IOS
+void SDL3DisplayWindow::TouchSync(bool consume)
+{
+ auto* backend=DisplayBackend::Get();static_assert((int)GamepadButton::Count==15);
+ for(int i=0;i<15;i++)backend->SimulateGamepadButton((GamepadButton)i,Touch.buttons[i]||Touch.pressed[i]);
+ if(consume)Touch.pressed.fill(false);
+ backend->SimulateGamepadAxis(GamepadAxis::LeftX,Touch.lx);
+ backend->SimulateGamepadAxis(GamepadAxis::LeftY,Touch.ly);
+ SDL_UpdateJoysticks();
+}
+void SDL3DisplayWindow::TouchEvent(const SDL_TouchFingerEvent& e)
+{
+ int w=1,h=1;SDL_GetWindowSize(Handle.window,&w,&h);float aspect=(float)w/std::max(h,1);
+ if(e.type==SDL_EVENT_FINGER_DOWN)Touch.Down(e.fingerID,e.x,e.y,aspect);
+ else if(e.type==SDL_EVENT_FINGER_MOTION)Touch.Move(e.fingerID,e.x,e.y,aspect,w,h);
+ else Touch.Up(e.fingerID);
+ TouchSync();
+ // Relative swipe only, independent from held gamepad fire.
+ float x=Touch.dx+RawMoveFractionX,y=Touch.dy+RawMoveFractionY;int dx=(int)x,dy=(int)y;
+ RawMoveFractionX=x-dx;RawMoveFractionY=y-dy;Touch.dx=Touch.dy=0;
+ if(dx||dy)WindowHost->OnWindowRawMouseMove(dx,dy);
+}
+void SDL3DisplayWindow::TouchDraw()
+{
+ int w=1,h=1;SDL_GetCurrentRenderOutputSize(RendererHandle,&w,&h);
+ SDL_SetRenderDrawBlendMode(RendererHandle,SDL_BLENDMODE_BLEND);
+ for(const auto& b:IOSTouch::Layout(Touch.menu)){
+  float radius=b.r*h;SDL_FRect box{b.x*w-radius,b.y*h-radius,radius*2,radius*2};
+  SDL_SetRenderDrawColor(RendererHandle,25,35,45,Touch.buttons[b.id]?210:135);SDL_RenderFillRect(RendererHandle,&box);
+  SDL_SetRenderDrawColor(RendererHandle,210,225,235,220);SDL_RenderRect(RendererHandle,&box);
+  SDL_RenderDebugText(RendererHandle,b.x*w-(float)std::strlen(b.label)*4,b.y*h-4,b.label);
+ }
+ float cx=.19f*w,cy=.72f*h;for(auto& f:Touch.fingers)if(f.second.owner==-1){cx=f.second.x*w;cy=f.second.y*h;}
+ SDL_SetRenderDrawColor(RendererHandle,210,225,235,100);
+ SDL_FRect base{cx-.14f*h,cy-.14f*h,.28f*h,.28f*h};SDL_RenderRect(RendererHandle,&base);
+ SDL_FRect knob{cx+Touch.lx*.14f*h-12,cy+Touch.ly*.14f*h-12,24,24};SDL_RenderFillRect(RendererHandle,&knob);
+ SDL_SetRenderDrawBlendMode(RendererHandle,SDL_BLENDMODE_NONE);
+}
+#endif

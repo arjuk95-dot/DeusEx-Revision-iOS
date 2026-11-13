@@ -1,6 +1,8 @@
 name: iOS bring-up (manual)
 on:
   workflow_dispatch:
+  push:
+    branches: [dxe/controller-touch-review]
 permissions:
   contents: read
 concurrency:
@@ -25,6 +27,11 @@ jobs:
         with:
           path: .ios-deps
           key: ios-sdl-3.2.30-static-v1-${{ runner.arch }}-${{ steps.sdk.outputs.version }}
+      - name: Touch ownership and private profile tests
+        run: |
+          clang++ -std=c++17 tests/ios/touch_state.cpp -o /tmp/touch-state
+          /tmp/touch-state
+          python3 -m unittest discover -s tests/ios -p 'test_*.py' -v
       - name: Compile iPhone device app
         run: |
           set -o pipefail

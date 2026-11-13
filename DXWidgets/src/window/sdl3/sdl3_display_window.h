@@ -5,6 +5,9 @@
 #include <dxwidgets/window/window.h>
 #include <dxwidgets/window/sdlnativehandle.h>
 #include <SDL3/SDL.h>
+#ifdef DXE_IOS
+#include "ios_touch_state.h"
+#endif
 
 #include "dxwidgets/core/image.h"
 
@@ -123,7 +126,13 @@ public:
 
 	SDL_Surface* windowIconSurface = nullptr;
 
-	bool CursorLocked = false;
+	#ifdef DXE_IOS
+    IOSTouch::State Touch;
+    void TouchSync(bool consume = false);
+    void TouchEvent(const SDL_TouchFingerEvent& event);
+    void TouchDraw();
+#endif
+    bool CursorLocked = false;
 	// The relative motion's fractions not yet passed on
 	float RawMoveFractionX = 0.0f;
 	float RawMoveFractionY = 0.0f;

@@ -149,3 +149,23 @@ master is deliberately not in this public source repository pending redistributi
 review; a build without the optional input remains iconless. Device icon display
 and actool integration require Apple validation. No extra CI run is needed solely
 for icons.
+
+## Experimental native-controller touch test
+
+`controller_profile.py --source User.ini --destination User.controller-candidate.ini`
+creates a separate reviewable private profile, refusing overwrite and preserving
+original settings. Bindings are derived from the installed profile's semantic
+actions and assigned to native UE1 Joy inputs. No keyboard pulses are generated.
+This test build explicitly requires that candidate alongside the original INIs.
+
+Mapping: A/RT fire, B jump, X/LT interact, Y crouch, LB/RB belt previous/next,
+Back inventory, Start menu, L3 walk, R3 reload. Floating analog movement and
+relative mouse swipe have independent touch owners, so held fire does not block
+look. Engine modal state selects Accept/Back/scroll UI controls. Context changes
+and focus loss release inputs. Short taps survive at least one gamepad sample.
+
+The approved twelve-slot direct radial is NOT implemented: native direct-slot
+selection remains unverified. Explicit shoulder belt cycling is provisional,
+not a claim that the final approved layout is complete. Original tracker music
+is required. Phone launch, simultaneous touch, profile/save selection and audio
+still require device testing. Retail data is never included in the source/IPA.

@@ -3689,7 +3689,10 @@ void Engine::TickWindow()
 	InputEvent(IK_MouseX, IST_Axis, 0);
 	InputEvent(IK_MouseY, IST_Axis, 0);
 
-	GameWindow::ProcessEvents();
+#ifdef DXE_IOS
+    DisplayBackend::Get()->SetTouchMenuMode(dxRootWindow && dxRootWindow->IsKeyboardGrabbed());
+#endif
+    GameWindow::ProcessEvents();
 
 	// The window's size kept the tick after it last changed (KeepWindowedSize)
 	if (windowSettleTicks > 0 && --windowSettleTicks == 0)

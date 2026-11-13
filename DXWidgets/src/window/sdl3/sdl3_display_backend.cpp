@@ -65,6 +65,10 @@ SDL3DisplayBackend::SDL3DisplayBackend()
 bool SDL3DisplayBackend::GetGamepadState(GamepadState& state)
 {
 	state = {};
+#ifdef DXE_IOS
+    // A quick tap must survive until at least one engine sample.
+    for(auto& entry:SDL3DisplayWindow::WindowList)entry.second->TouchSync(true);
+#endif
 
 	// Controllers can be plugged in or out at any time; keep the first
 	// attached one, and look again when it goes away. Opening is
@@ -190,6 +194,10 @@ SDL_Joystick* SDL3DisplayBackend::VirtualPad()
 	SDL_JoystickID id = SDL_AttachVirtualJoystick(&desc);
 	if (id)
 		Virtual = SDL_OpenJoystick(id);
+    if(Virtual){
+        SDL_SetJoystickVirtualAxis(Virtual,(int)GamepadAxis::LeftTrigger,-32768);
+        SDL_SetJoystickVirtualAxis(Virtual,(int)GamepadAxis::RightTrigger,-32768);
+    }
 	return Virtual;
 }
 
@@ -305,4 +313,13 @@ void* SDL3DisplayBackend::StartTimer(int timeoutMilliseconds, std::function<void
 void SDL3DisplayBackend::StopTimer(void* timerID)
 {
 	SDL3DisplayWindow::StopTimer(timerID);
+}
+
+void SDL3DisplayBackend::SetTouchMenuMode(bool menu)
+{
+#ifdef DXE_IOS
+ for(auto& entry:SDL3DisplayWindow::WindowList){auto* w=entry.second;if(w->Touch.menu!=menu){w->Touch.SetMenu(menu);w->TouchSync();}}
+#else
+ (void)menu;
+#endif
 }
