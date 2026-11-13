@@ -102,8 +102,23 @@ void SoftwareRenderDevice::Unlock(bool Blit)
 		// The ramp and the window's size first: where the window is the
 		// frame's size, each tile goes through the ramp as it is finished
 		Present.SetGamma(*this);
-		int width = std::max(Viewport->GetNativePixelWidth(), 1);
-		int height = std::max(Viewport->GetNativePixelHeight(), 1);
+		#ifdef DXE_IOS
+        // Apply the identical gamma ramp at scene resolution. SDL/Metal
+        // scales the bitmap to the full output; touch glyphs remain native.
+        const char* cpuMode=std::getenv("DXE_IOS_CPU_UPSCALE");
+        bool cpuUpscale=cpuMode && std::string(cpuMode)=="1";
+        int width = cpuUpscale ? Viewport->GetNativePixelWidth() : Frame.Width;
+        int height = cpuUpscale ? Viewport->GetNativePixelHeight() : Frame.Height;
+        static int loggedW=0,loggedH=0;
+        if(width!=loggedW || height!=loggedH) {
+            LogMessage("iOS scene/upload " + std::to_string(width) + "x" + std::to_string(height) +
+                "; native output " + std::to_string(Viewport->GetNativePixelWidth()) + "x" + std::to_string(Viewport->GetNativePixelHeight()) + (cpuUpscale ? "; CPU upscale" : "; Metal upscale"));
+            loggedW=width; loggedH=height;
+        }
+#else
+        int width = std::max(Viewport->GetNativePixelWidth(), 1);
+        int height = std::max(Viewport->GetNativePixelHeight(), 1);
+#endif
 		bool mapped = DrawRecorded(Present.Prepare(Frame, width, height));
 		const uint32_t* pixels = Present.Present(Frame, *Workers, mapped);
 		Viewport->PresentBitmap(width, height, pixels);

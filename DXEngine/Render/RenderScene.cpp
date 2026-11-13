@@ -1,5 +1,6 @@
 
 #include "Precomp.h"
+#include "Utils/MobilePresentation.h"
 #include "RenderSubsystem.h"
 #include "RenderDevice/RenderDevice.h"
 #include "GameWindow.h"
@@ -288,8 +289,9 @@ void RenderSubsystem::DrawCoronasDX(VisibleFrame* frame)
 		TextureInfo texinfo;
 		engine->render->UpdateTextureInfo(texinfo, skinFrame);
 
-		float width = (float)skinFrame->UsedMipmaps.front().Width;
-		float height = (float)skinFrame->UsedMipmaps.front().Height;
+		// UV units are logical texture units, not replacement mip pixels.
+		float width = MobilePresentation::CoronaExtent(texinfo.USize, texinfo.UScale);
+		float height = MobilePresentation::CoronaExtent(texinfo.VSize, texinfo.VScale);
 		float size = light->DrawScale() * frame->Frame.FX * 0.2f;
 		// The hue's colour, whitened by the saturation, times the fade -- as
 		// DrawFrame works it out itself, with none of the light maps'

@@ -1,5 +1,6 @@
 
 #include "Precomp.h"
+#include <algorithm>
 #include <chrono>
 #include "URootWindow.h"
 #include "Utils/Logger.h"
@@ -276,8 +277,8 @@ void URootWindow::ResizeRoot()
 	float virtualWidth = GetVirtualWidth();
 	float virtualHeight = GetVirtualHeight();
 	float virtualScale = GetVirtualScale();
-	hMultiplier() = (int)virtualScale;
-	vMultiplier() = (int)virtualScale;
+	hMultiplier() = std::max(1, (int)virtualScale);
+	vMultiplier() = std::max(1, (int)virtualScale);
 
 	// The 4:3 root centred to a whole unit, as RootOffsetX takes its
 	// children back by whole units: a root child at 0 then lies on a whole

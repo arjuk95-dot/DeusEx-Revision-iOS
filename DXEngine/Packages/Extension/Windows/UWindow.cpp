@@ -1,5 +1,6 @@
 
 #include "Precomp.h"
+#include "Utils/MobilePresentation.h"
 #include "UWindow.h"
 #include "UGC.h"
 #include "UViewportWindow.h"
@@ -136,7 +137,14 @@ float UWindow::GetVirtualScale()
 	// multiple of 640x480 the viewport holds
 	int width, height;
 	GetScreenSize(width, height);
-	return (float)std::max(std::min(width / 640, height / 480), 1);
+	#ifdef DXE_IOS
+    // Mobile fit mode: expose all controls rather than clip at low scene res.
+    // Legacy integer behavior remains available without rewriting game INIs.
+    const char* mode = std::getenv("DXE_IOS_UI_MODE");
+    if (!mode || std::string(mode) != "legacy")
+        return MobilePresentation::UIScale(width,height);
+#endif
+    return (float)std::max(std::min(width / 640, height / 480), 1);
 }
 
 // A dedicated server has no viewport: the player's own root's windows, which

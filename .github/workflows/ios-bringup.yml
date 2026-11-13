@@ -33,6 +33,8 @@ jobs:
           /tmp/touch-state
           clang++ -std=c++17 -I. tests/ios/touch_glyphs.cpp -o /tmp/touch-glyphs
           /tmp/touch-glyphs
+          clang++ -std=c++17 tests/ios/mobile_presentation.cpp -o /tmp/mobile-presentation
+          /tmp/mobile-presentation
           python3 -m unittest discover -s tests/ios -p 'test_*.py' -v
       - name: Compile iPhone device app
         run: |

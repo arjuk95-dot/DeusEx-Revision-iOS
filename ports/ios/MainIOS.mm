@@ -7,6 +7,7 @@
 #include "Utils/File.h"
 #include "SandboxPaths.h"
 #include "RevisionLaunch.h"
+#include "Utils/MobilePresentation.h"
 #include "Package/IniFile.h"
 #include <cstdio>
 #include <exception>
@@ -53,7 +54,17 @@ static int RunIOSGame()
             settings.Gamepad.Enabled = true;
             settings.RenderDevice.Type = RenderDeviceType::Software;
             settings.RenderDevice.TypeNamed = true;
-            settings.Performance.RenderScale = 0.5f;
+            // Read optional mobile preferences; never rewrite the user's profile.
+            const auto scale=userProfile.GetValue("DXEngine.iOS", "RenderScale");
+            settings.Performance.RenderScale = MobilePresentation::Number(scale.c_str(), 1.f/3.f, 0.25f, 1.f);
+            const auto look=userProfile.GetValue("DXEngine.iOS", "TouchLookGain");
+            const float lookGain=MobilePresentation::Number(look.c_str(), 3.f, 0.25f, 8.f);
+            setenv("DXE_IOS_TOUCH_LOOK_GAIN", std::to_string(lookGain).c_str(), 1);
+            const auto cpu=userProfile.GetValue("DXEngine.iOS", "CPUUpscale");
+            setenv("DXE_IOS_CPU_UPSCALE", cpu == "True" || cpu == "1" ? "1" : "0", 1);
+            const auto ui=userProfile.GetValue("DXEngine.iOS", "UIMode");
+            setenv("DXE_IOS_UI_MODE", ui == "legacy" ? "legacy" : "fit", 1);
+            std::fprintf(stderr,"iOS render scale %.3f; touch gain %.2f; UI %s\n",settings.Performance.RenderScale,lookGain,ui == "legacy" ? "legacy" : "fit");
             Array<std::string> args;
             for (const auto& arg : revision.Arguments(paths)) args.push_back(arg);
             GameApp app;

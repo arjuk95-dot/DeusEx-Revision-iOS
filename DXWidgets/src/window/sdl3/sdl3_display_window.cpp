@@ -1,6 +1,7 @@
 #include "sdl3_display_window.h"
 #ifdef DXE_IOS
 #include "ios_touch_glyphs.h"
+#include "ios_presentation.h"
 #endif
 #include <stdexcept>
 #include <SDL3/SDL_vulkan.h>
@@ -8,6 +9,8 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_mouse.h>
 #include <cmath>
+#include <cstdlib>
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -522,6 +525,9 @@ void SDL3DisplayWindow::PresentBitmap(int width, int height, const uint32_t* pix
 		// Copied as it is: the format's alpha would otherwise blend it
 		// over what the renderer last drew
 		SDL_SetTextureBlendMode(BackBufferTexture, SDL_BLENDMODE_NONE);
+#ifdef DXE_IOS
+        SDL_SetTextureScaleMode(BackBufferTexture, SDL_SCALEMODE_LINEAR);
+#endif
 
 		BackBufferWidth = width;
 		BackBufferHeight = height;
@@ -539,7 +545,17 @@ void SDL3DisplayWindow::PresentBitmap(int width, int height, const uint32_t* pix
 	}
 	SDL_UnlockTexture(BackBufferTexture);
 
-	SDL_RenderTexture(RendererHandle, BackBufferTexture, nullptr, nullptr);
+	#ifdef DXE_IOS
+    int outputW=1,outputH=1;
+    SDL_GetCurrentRenderOutputSize(RendererHandle,&outputW,&outputH);
+    auto box=IOSPresentation::Fit(width,height,outputW,outputH);
+    SDL_FRect destRect{box.x,box.y,box.w,box.h};
+    SDL_SetRenderDrawColor(RendererHandle,0,0,0,255);
+    SDL_RenderClear(RendererHandle);
+    SDL_RenderTexture(RendererHandle,BackBufferTexture,nullptr,&destRect);
+#else
+    SDL_RenderTexture(RendererHandle, BackBufferTexture, nullptr, nullptr);
+#endif
 	#ifdef DXE_IOS
 	TouchDraw();
 #endif
@@ -933,7 +949,7 @@ InputKey SDL3DisplayWindow::KeyEventToInputKey(const SDL_KeyboardEvent& event)
 // (dlls/winex11.drv/keyboard.c, main_key_vkey_*): the layout's family told
 // by what a few keys type (SDL's keycodes, Latin letters on any layout, a
 // dead key its US key's) -- AZERTY's A and Z, QWERTZ's Z and Y, Dvorak's O
-// and E, Swedish's (and Finnish's) Ã¥, Ã¶ and Ã¤, Brazilian ABNT's Ã§ and [,
+// and E, Swedish's (and Finnish's) ÃƒÂ¥, ÃƒÂ¶ and ÃƒÂ¤, Brazilian ABNT's ÃƒÂ§ and [,
 // Japanese 106's @ and : -- a QWERTY's keys by their places, as every other
 // layout's are, each other family's by its table, the French, Dvorak and
 // Swedish ones Windows' own. None for any other key.
@@ -1590,7 +1606,11 @@ void SDL3DisplayWindow::TouchEvent(const SDL_TouchFingerEvent& e)
  else Touch.Up(e.fingerID);
  TouchSync();
  // Relative swipe only, independent from held gamepad fire.
- float x=Touch.dx+RawMoveFractionX,y=Touch.dy+RawMoveFractionY;int dx=(int)x,dy=(int)y;
+ // Normalize to a 956-point reference width, independent of native pixels,
+ // render scale, and device DPI. Game's existing mouse sensitivity still applies.
+ static float gain=[](){const char* s=std::getenv("DXE_IOS_TOUCH_LOOK_GAIN");float g=s?std::strtof(s,nullptr):3.f;return std::isfinite(g)?std::clamp(g,.25f,8.f):3.f;}();
+ float lookScale=IOSPresentation::LookScale(gain,w);
+ float x=Touch.dx*lookScale+RawMoveFractionX,y=Touch.dy*lookScale+RawMoveFractionY;int dx=(int)x,dy=(int)y;
  RawMoveFractionX=x-dx;RawMoveFractionY=y-dy;Touch.dx=Touch.dy=0;
  if(dx||dy)WindowHost->OnWindowRawMouseMove(dx,dy);
 }
