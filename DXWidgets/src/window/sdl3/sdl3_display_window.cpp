@@ -1,4 +1,7 @@
 #include "sdl3_display_window.h"
+#ifdef DXE_IOS
+#include "ios_touch_glyphs.h"
+#endif
 #include <stdexcept>
 #include <SDL3/SDL_vulkan.h>
 #include <SDL3/SDL_events.h>
@@ -930,7 +933,7 @@ InputKey SDL3DisplayWindow::KeyEventToInputKey(const SDL_KeyboardEvent& event)
 // (dlls/winex11.drv/keyboard.c, main_key_vkey_*): the layout's family told
 // by what a few keys type (SDL's keycodes, Latin letters on any layout, a
 // dead key its US key's) -- AZERTY's A and Z, QWERTZ's Z and Y, Dvorak's O
-// and E, Swedish's (and Finnish's) å, ö and ä, Brazilian ABNT's ç and [,
+// and E, Swedish's (and Finnish's) Ã¥, Ã¶ and Ã¤, Brazilian ABNT's Ã§ and [,
 // Japanese 106's @ and : -- a QWERTY's keys by their places, as every other
 // layout's are, each other family's by its table, the French, Dvorak and
 // Swedish ones Windows' own. None for any other key.
@@ -1573,7 +1576,15 @@ void SDL3DisplayWindow::TouchSync(bool consume)
 }
 void SDL3DisplayWindow::TouchEvent(const SDL_TouchFingerEvent& e)
 {
- int w=1,h=1;SDL_GetWindowSize(Handle.window,&w,&h);float aspect=(float)w/std::max(h,1);
+ int w=1,h=1;SDL_GetWindowSize(Handle.window,&w,&h);
+ if(!TouchEnabled){
+  Point pos(e.x*w/UnitsPerDip(),e.y*h/UnitsPerDip());
+  if(e.type==SDL_EVENT_FINGER_DOWN)WindowHost->OnWindowMouseDown(pos,InputKey::LeftMouse);
+  else if(e.type==SDL_EVENT_FINGER_UP||e.type==SDL_EVENT_FINGER_CANCELED)WindowHost->OnWindowMouseUp(pos,InputKey::LeftMouse);
+  else WindowHost->OnWindowMouseMove(pos);
+  return;
+ }
+ float aspect=(float)w/std::max(h,1);
  if(e.type==SDL_EVENT_FINGER_DOWN)Touch.Down(e.fingerID,e.x,e.y,aspect);
  else if(e.type==SDL_EVENT_FINGER_MOTION)Touch.Move(e.fingerID,e.x,e.y,aspect,w,h);
  else Touch.Up(e.fingerID);
@@ -1585,18 +1596,25 @@ void SDL3DisplayWindow::TouchEvent(const SDL_TouchFingerEvent& e)
 }
 void SDL3DisplayWindow::TouchDraw()
 {
+ if(!TouchEnabled)return;
  int w=1,h=1;SDL_GetCurrentRenderOutputSize(RendererHandle,&w,&h);
  SDL_SetRenderDrawBlendMode(RendererHandle,SDL_BLENDMODE_BLEND);
+ auto ring=[&](float x,float y,float radius){for(int i=0;i<64;i++){float a=i*6.2831853f/64,b=(i+1)*6.2831853f/64;SDL_RenderLine(RendererHandle,x+radius*std::cos(a),y+radius*std::sin(a),x+radius*std::cos(b),y+radius*std::sin(b));}};
  for(const auto& b:IOSTouch::Layout(Touch.menu)){
-  float radius=b.r*h;SDL_FRect box{b.x*w-radius,b.y*h-radius,radius*2,radius*2};
-  SDL_SetRenderDrawColor(RendererHandle,25,35,45,Touch.buttons[b.id]?210:135);SDL_RenderFillRect(RendererHandle,&box);
-  SDL_SetRenderDrawColor(RendererHandle,210,225,235,220);SDL_RenderRect(RendererHandle,&box);
-  SDL_RenderDebugText(RendererHandle,b.x*w-(float)std::strlen(b.label)*4,b.y*h-4,b.label);
+  float radius=b.r*h,cx=b.x*w,cy=b.y*h;
+  SDL_SetRenderDrawColor(RendererHandle,18,25,32,Touch.buttons[b.id]?175:85);
+  for(float y=-radius;y<=radius;y++){float x=std::sqrt(std::max(0.f,radius*radius-y*y));SDL_RenderLine(RendererHandle,cx-x,cy+y,cx+x,cy+y);}
+  SDL_SetRenderDrawColor(RendererHandle,225,238,245,Touch.buttons[b.id]?255:185);ring(cx,cy,radius);
+  float scale=radius*.66f,thick=std::max(1.f,h/420.f);
+  for(const auto& g:IOSTouch::Glyph(b.id,Touch.menu))for(float o=-thick*.5f;o<=thick*.5f;o+=1.f){
+   SDL_RenderLine(RendererHandle,cx+g.x1*scale+o,cy+g.y1*scale,cx+g.x2*scale+o,cy+g.y2*scale);
+   SDL_RenderLine(RendererHandle,cx+g.x1*scale,cy+g.y1*scale+o,cx+g.x2*scale,cy+g.y2*scale+o);
+  }
  }
  float cx=.19f*w,cy=.72f*h;for(auto& f:Touch.fingers)if(f.second.owner==-1){cx=f.second.x*w;cy=f.second.y*h;}
- SDL_SetRenderDrawColor(RendererHandle,210,225,235,100);
- SDL_FRect base{cx-.14f*h,cy-.14f*h,.28f*h,.28f*h};SDL_RenderRect(RendererHandle,&base);
- SDL_FRect knob{cx+Touch.lx*.14f*h-12,cy+Touch.ly*.14f*h-12,24,24};SDL_RenderFillRect(RendererHandle,&knob);
+ SDL_SetRenderDrawColor(RendererHandle,225,238,245,95);ring(cx,cy,.14f*h);
+ ring(cx+Touch.lx*.14f*h,cy+Touch.ly*.14f*h,.035f*h);
+
  SDL_SetRenderDrawBlendMode(RendererHandle,SDL_BLENDMODE_NONE);
 }
 #endif

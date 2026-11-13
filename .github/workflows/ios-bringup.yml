@@ -31,6 +31,8 @@ jobs:
         run: |
           clang++ -std=c++17 tests/ios/touch_state.cpp -o /tmp/touch-state
           /tmp/touch-state
+          clang++ -std=c++17 -I. tests/ios/touch_glyphs.cpp -o /tmp/touch-glyphs
+          /tmp/touch-glyphs
           python3 -m unittest discover -s tests/ios -p 'test_*.py' -v
       - name: Compile iPhone device app
         run: |

@@ -128,6 +128,7 @@ public:
 
 	#ifdef DXE_IOS
     IOSTouch::State Touch;
+    bool TouchEnabled = false;
     void TouchSync(bool consume = false);
     void TouchEvent(const SDL_TouchFingerEvent& event);
     void TouchDraw();

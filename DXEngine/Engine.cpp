@@ -3686,7 +3686,7 @@ void Engine::TickWindow()
 #ifdef DXE_IOS
         // A modal menu grabs keys, but that alone must not summon the phone
         // keyboard over profile/save selectors. Only an editable focused field.
-        auto* edit = dxRootWindow ? UObject::Cast<UEditWindow>(dxRootWindow->FocusWindow()) : nullptr;
+        auto* edit = dxRootWindow ? UObject::TryCast<UEditWindow>(dxRootWindow->FocusWindow()) : nullptr;
         const bool textEntry = (edit && edit->IsEditingEnabled()) || (console && console->bTyping());
 #else
         const bool textEntry = (dxRootWindow && dxRootWindow->IsKeyboardGrabbed()) || (console && console->bTyping());

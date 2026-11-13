@@ -318,7 +318,7 @@ void SDL3DisplayBackend::StopTimer(void* timerID)
 void SDL3DisplayBackend::SetTouchMenuMode(bool menu)
 {
 #ifdef DXE_IOS
- for(auto& entry:SDL3DisplayWindow::WindowList){auto* w=entry.second;if(w->Touch.menu!=menu){w->Touch.SetMenu(menu);w->TouchSync();}}
+ for(auto& entry:SDL3DisplayWindow::WindowList){auto* w=entry.second;w->TouchEnabled=true;if(w->Touch.menu!=menu){w->Touch.SetMenu(menu);w->TouchSync();}}
 #else
  (void)menu;
 #endif

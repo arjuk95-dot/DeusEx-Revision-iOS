@@ -11,6 +11,7 @@
 <key>CFBundleSupportedPlatforms</key><array><string>${DXE_APP_PLATFORM}</string></array>
 <key>MinimumOSVersion</key><string>${CMAKE_OSX_DEPLOYMENT_TARGET}</string>
 <key>LSRequiresIPhoneOS</key><true/>
+<key>UIApplicationSupportsIndirectInputEvents</key><true/>
 <key>UIFileSharingEnabled</key><true/>
 <key>LSSupportsOpeningDocumentsInPlace</key><true/>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
