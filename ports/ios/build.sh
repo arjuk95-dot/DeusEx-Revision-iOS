@@ -41,7 +41,7 @@ mkdir -p "$app/Licenses" "$app/Frameworks"
 cp -R "$mvk/MoltenVK/dynamic/MoltenVK.xcframework/ios-arm64/MoltenVK.framework" "$app/Frameworks/"
 cp "$mvk/LICENSE" "$app/Licenses/MoltenVK.txt"
 # Sideload signer must sign this embedded dynamic framework along with the app.
-xcrun lipo -verify_arch arm64 "$app/Frameworks/MoltenVK.framework/MoltenVK"
+xcrun lipo "$app/Frameworks/MoltenVK.framework/MoltenVK" -verify_arch arm64
 cp "$root/LICENSE.md" "$app/Licenses/DXEngine-and-third-parties.md"
 cp "$root/Thirdparty/openal-soft/COPYING" "$app/Licenses/OpenAL-Soft.txt"
 cp "$prefix/SDL/LICENSE.txt" "$app/Licenses/SDL3.txt"
