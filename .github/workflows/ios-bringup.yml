@@ -2,7 +2,7 @@ name: iOS bring-up (manual)
 on:
   workflow_dispatch:
   push:
-    branches: [dxe/controller-touch-review]
+    branches: [dxe/vsync-off-20261114]
 permissions:
   contents: read
 concurrency:

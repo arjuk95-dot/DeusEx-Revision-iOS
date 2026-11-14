@@ -16,7 +16,12 @@
 RenderDevice::RenderDevice()
 {
 	const auto& settings = LauncherSettings::Get();
+#ifdef DXE_IOS
+    // Owner-requested iPhone build: disable VSync without rewriting saved settings.
+    UseVSync = false;
+#else
 	UseVSync = settings.RenderDevice.UseVSync;
+#endif
 	Hdr = settings.RenderDevice.Hdr;
 	HdrScale = settings.RenderDevice.HdrScale;
 	Bloom = settings.RenderDevice.Bloom;
